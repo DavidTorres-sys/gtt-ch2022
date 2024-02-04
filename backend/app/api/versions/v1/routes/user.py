@@ -1,16 +1,23 @@
+import os
 # FastAPI imports
-from fastapi import APIRouter, HTTPException, Depends, status, Query, Path
+from fastapi import APIRouter, Depends, status, Query, Path
 from fastapi.responses import JSONResponse
+from fastapi.security import OAuth2PasswordRequestForm
 # Typing imports
 from typing import List, Any
-from datetime import timedelta
+# dotenv imports
+from dotenv import load_dotenv
 # Local imports
 from app.utils.database import get_db
 from app.schemas.user import UserResponse, UserUpdate, UserCreate
+from app.schemas.token import Token
 from app.services.crud.user import user_service
 from app.services.security import jwt_token
 
 router = APIRouter()
+
+load_dotenv()
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=List[UserResponse])
@@ -23,10 +30,10 @@ async def read_all(
         Endpoint to read all users.
 
         Params:
-        - db_session: Database session
         - skip: Number of users to skip (non-negative integer)
         - limit: Number of users to read and return (between 1 and 100)
-
+        Dependencies:
+        - db_session: SQLAlchemy database session.
         Returns:
         - users: List of UserResponse
     """
@@ -43,8 +50,9 @@ async def read_user(
         Endpoint to read a user by id.
 
         Params:
-        - db_session: Database session
         - user_id: User id
+        Dependencies:
+        - db_session: SQLAlchemy database session.
         Returns:
         - user: UserResponse
     """
@@ -61,8 +69,9 @@ async def create_user(
         Endpoint to create a user.
 
         Params:
-        - db_session: Database session
         - user_in: UserResponse
+        Dependencies:
+        - db_session: SQLAlchemy database session.
         Returns:
         - user: UserResponse
     """
@@ -79,9 +88,10 @@ async def update_user(
         Endpoint to update a user.
 
         Params:
-        - db_session: Database session
         - user_id: User id
         - user_in: UserResponse
+        Dependencies:
+        - db_session: SQLAlchemy database session.
         Returns:
         - user: UserResponse
     """
@@ -98,8 +108,9 @@ async def delete_user(
         Endpoint to delete a user.
 
         Params:
-        - db_session: Database session
         - user_id: User.id
+        Dependencies:
+        - db_session: SQLAlchemy database session.
         Returns:
         - mgs: str
     """
@@ -107,3 +118,23 @@ async def delete_user(
     return JSONResponse(status_code=status.HTTP_200_OK, content={
         'detail': 'User deleted'
     })
+
+
+@router.post("/access-token", status_code=status.HTTP_200_OK)
+async def access_token(
+        *,
+        db_session=Depends(get_db),
+        form_data: OAuth2PasswordRequestForm = Depends()):
+    """
+        Endpoint to obtain an access token.
+
+        Dependencies:
+        - form_data: OAuth2PasswordRequestForm
+
+        Returns:
+        - JSONResponse: JSON response containing the access token.
+    """
+    user = jwt_token.authenticate_user(db_session, form_data.username, form_data.password)
+    access_token = jwt_token.create_jwt_token(data={"sub": user.email})
+    return Token(access_token=access_token, token_type="bearer", expires=ACCESS_TOKEN_EXPIRE_MINUTES)
+    

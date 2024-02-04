@@ -2,12 +2,13 @@
 from fastapi import status, HTTPException
 # SQLAlchemy imports
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 # Typing imports
 from typing import List
-from datetime import timedelta
 # Local imports
-from app.schemas.user import UserResponse, UserUpdate, UserCreate, UserInDB
 from app.services.security import jwt_token
+from app.schemas.user import UserResponse, UserUpdate, UserCreate
+from app.models.user import User
 from .user_crud import user_crud
 
 
@@ -60,15 +61,22 @@ class UserService():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
         try:
-            db_obj = user_crud._create(db, obj_in)
-            db_obj.name = db_obj.name.lower()
-            db_obj.last_name = db_obj.last_name.lower()
-
-            # Generate a JWT token for the created user
-            expires_delta = timedelta(minutes=15)
-            token = jwt_token.create_jwt_token({"sub": db_obj.id}, expires_delta)
-
-            return self._generate_user_response(db_obj, token)
+            hashed_password = jwt_token.get_password_hash(obj_in.password)
+            data = {
+                "email": obj_in.email,
+                "name": obj_in.name.lower(),
+                "last_name": obj_in.last_name.lower(),
+                "hashed_password": hashed_password
+            }
+            db_obj = User(**data)
+            db.add(db_obj)
+            db.commit()
+            db.refresh(db_obj)
+            return db_obj
+        except IntegrityError as e:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -150,9 +158,6 @@ class UserService():
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-
-    def _generate_user_response(self, user_obj: UserInDB, jwt_token: str) -> UserResponse:
-        return UserResponse.from_orm(user_obj).copy(update={"jwt_token": jwt_token, "dog": []})
 
 
 user_service = UserService()

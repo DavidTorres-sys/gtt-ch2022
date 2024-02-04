@@ -12,6 +12,7 @@ class User(Base):
     name = Column(String)
     last_name = Column(String)
     email = Column(String)
+    hashed_password = Column(String)
     created_date = Column(DateTime, default=func.now())
     # Relationship
     dog = relationship("Dog", back_populates="user")

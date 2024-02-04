@@ -1,6 +1,6 @@
 import httpx
 # FastAPI imports
-from fastapi import APIRouter, HTTPException, Depends, Query, Header, status
+from fastapi import APIRouter, HTTPException, Depends, Query, status
 from fastapi.responses import JSONResponse
 # Typing imports
 from typing import List, Any
@@ -8,7 +8,7 @@ from typing import List, Any
 from app.utils.database import get_db
 from app.schemas.dog import DogResponse, DogCreate, DogUpdate
 from app.services.crud.dog import dog_service
-from app.services.security import jwt_token
+from app.api.middlewares.jwt_bearer import oauth2_scheme
 
 router = APIRouter()
 
@@ -17,8 +17,7 @@ router = APIRouter()
 async def read_all(
         *,
         db_session=Depends(get_db),
-        skip: int = Query(
-            0, description="Number of registers to skip (for pagination)."),
+        skip: int = Query(0, description="Number of registers to skip (for pagination)."),
         limit: int = Query(10, description="Maximum number of registers to retrieve (for pagination).")):
     """
         Endpoint to retrieve a list of dogs with optional pagination.
@@ -95,7 +94,7 @@ async def read_adopted(
 async def create_dog(
         *,
         db_session=Depends(get_db),
-        token: str = Header(...),
+        current_user: str = Depends(oauth2_scheme),
         dog_in: DogCreate):
     """
         Endpoint to create a dog.
@@ -108,10 +107,6 @@ async def create_dog(
         Returns:
         - DogResponse.
     """
-    # Verify the token and extract user information
-    current_user = jwt_token.verify_token(token=token)
-    user_id = current_user.sub
-
     db_dog = dog_service.create(db_session, dog_in)
     async with httpx.AsyncClient() as client:
         try:

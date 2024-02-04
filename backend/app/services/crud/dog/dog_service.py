@@ -4,7 +4,6 @@ from fastapi import status, HTTPException
 from sqlalchemy.orm import Session
 # Local imports
 from .dog_crud import dog_crud
-from app.services.security import jwt_token
 
 
 class DogService():

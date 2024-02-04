@@ -11,6 +11,7 @@ class DogBase(BaseModel):
         max_length=50,
     )
     is_adopted: bool
+    user_id: Optional[int] = None
 
 
 class DogCreate(DogBase):

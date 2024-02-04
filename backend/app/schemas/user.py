@@ -1,5 +1,5 @@
 # Pydantic Imports
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 # Typing imports
 from datetime import datetime
 from typing import List, Optional
@@ -18,12 +18,12 @@ class UserBase(BaseModel):
     )
     email: str = Field(
         min_length=1,
-        max_length=100,
+        max_length=50,
     )
 
 
 class UserCreate(UserBase):
-    pass
+    password: str
 
 
 class UserUpdate(UserBase):
@@ -33,11 +33,11 @@ class UserUpdate(UserBase):
 class UserInDB(UserBase):
     id: int
     created_date: datetime
+    hashed_password: SecretStr
 
     class Config:
         orm_mode = True
 
 
 class UserResponse(UserInDB):
-    jwt_token: Optional[str]
     dog: Optional[List[DogResponse]]
