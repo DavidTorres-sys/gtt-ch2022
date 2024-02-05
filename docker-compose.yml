@@ -1,5 +1,6 @@
 version: '3'
 services:
+    # POSTGRESQL DATABASE
     db:
         container_name: 'db'
         image: postgres:latest
@@ -32,6 +33,11 @@ services:
             - .env
         depends_on:
             - db
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 30s
+            timeout: 10s
+            retries: 5
 
     rabbitmq:
         container_name: 'rabbitmq'
@@ -43,6 +49,13 @@ services:
             - .env
         depends_on:
             - db
+        healthcheck:
+            test: [ "CMD", "rabbitmq-diagnostics", "check_running" ]
+            interval: 30s
+            timeout: 10s
+            retries: 5
+        volumes:
+            - rabbitmq_data:/var/lib/rabbitmq
         environment:
             RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
             RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
@@ -56,9 +69,17 @@ services:
         env_file:
             - .env
         depends_on:
+            - rabbitmq
             - redis
-        command: celery -A app worker -l info -Q default -n default@%h
+        environment:
+            CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+            CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND}
+        # Wait for the rabbitmq to be ready before starting the worker
+        command: >
+            sh -c "while ! nc -z rabbitmq 5672; do sleep 1; done;
+             celery -A app.core.celery.celery worker -l info -Q default -n default@%h"
 
+    # PGADMIN to visualize the database
     pgadmin:
         container_name: 'pgadmin'
         image: dpage/pgadmin4
@@ -71,3 +92,24 @@ services:
         environment:
             PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
             PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+
+    flower:
+        container_name: 'flower'
+        image: mher/flower
+        ports:
+            - "5555:5555"
+        env_file:
+            - .env
+        depends_on:
+            - celery
+        healthcheck:
+            test: ["CMD", "celery", "events", "-b", "${CELERY_BROKER_URL}"]
+            interval: 30s
+            timeout: 10s
+            retries: 5
+        environment:
+            CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+            CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND}
+
+volumes:
+    rabbitmq_data:

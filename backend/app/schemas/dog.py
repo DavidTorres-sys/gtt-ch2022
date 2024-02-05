@@ -26,7 +26,6 @@ class DogInDB(DogBase):
     id: int
     created_date: datetime
     picture: Optional[str] = None
-    user_id: Optional[int] = None
 
     class Config:
         orm_mode = True

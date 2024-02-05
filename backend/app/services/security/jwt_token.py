@@ -116,13 +116,13 @@ class JwtToken():
         """
         Authenticate a user.
 
-        Args:
+        Parameters:
         - db (Session): Database session.
         - email (str): Email of the user attempting to log in.
         - password (str): Password provided by the user.
 
         Returns:
-        - UserResponse: Information about the logged-in user, including a JWT token.
+        - UserResponse.
 
         """
         # Check if the user exists in the database

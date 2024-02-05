@@ -17,13 +17,15 @@ router = APIRouter()
 async def read_all(
         *,
         db_session=Depends(get_db),
-        skip: int = Query(0, description="Number of registers to skip (for pagination)."),
-        limit: int = Query(10, description="Maximum number of registers to retrieve (for pagination).")):
+        skip: int = Query(0, description="Number of registers to skip."),
+        limit: int = Query(10, description="Maximum number of registers to retrieve.")):
     """
         Endpoint to retrieve a list of dogs with optional pagination.
 
-        Params:
+        Depencencies:
         - db_session: Database session.
+
+        Params:
         - skip: Number of registers to skip.
         - limit: Maximum number of registers to retrieve.
 
@@ -42,8 +44,10 @@ async def read_dog(
     """
         Endpoint to retrieve a dog by ID.
 
-        Params:
+        Depencencies:
         - db_session: Database session.
+
+        Params:
         - dog_id: Dog ID.
 
         Returns:
@@ -61,8 +65,10 @@ async def read_name(
     """
         Endpoint to retrieve a dog by name.
 
-        Params:
+        Depencencies:
         - db_session: Database session.
+
+        Params:
         - dog_name: Dog name.
 
         Returns:
@@ -80,8 +86,11 @@ async def read_adopted(
     """
         Endpoint to retrieve a list of adopted dogs.
 
-        Params:
+        Depencencies:
         - db_session: Database session.
+
+        Params:
+        - is_adopted: Filter by adopted status(bool).
 
         Returns:
         - List of retrieved dogs(DogResponse).
@@ -99,9 +108,11 @@ async def create_dog(
     """
         Endpoint to create a dog.
 
-        Params:
+        Depencencies:
         - db_session: Database session.
-        - jwt_token: JWT token obtained from the header.
+        - current_user: authentication.
+
+        Params:
         - dog_in: DogResponse.
 
         Returns:
@@ -131,8 +142,10 @@ async def update_dog(
     """
         Endpoint to update a dog.
 
-        Params:
+        Depencencies:
         - db_session: Database session.
+
+        Params:
         - dog_id: Dog ID.
         - dog_in: DogResponse.
 
@@ -152,8 +165,10 @@ async def update_dog_by_name(
     """
         Endpoint to update a dog by name.
 
-        Params:
+        Depencencies:
         - db_session: Database session.
+
+        Params:
         - dog_name: Dog name.
         - dog_in: DogResponse.
 
@@ -172,12 +187,14 @@ async def delete_by_id(
     """
         Endpoint to delete a dog.
 
-        Params:
+        Depencencies:
         - db_session: Database session.
+
+        Params:
         - dog_id: Dog ID.
 
         Returns:
-        - Any.
+        - JSON: msj.
     """
     db_dog = dog_service.delete(db_session, dog_id)
     return JSONResponse(status_code=status.HTTP_200_OK, content={
@@ -193,8 +210,10 @@ async def delete_by_name(
     """
         Endpoint to delete a dog by name.
 
-        Params:
+        Depencencies:
         - db_session: Database session.
+
+        Params:
         - dog_name: Dog name.
 
         Returns:

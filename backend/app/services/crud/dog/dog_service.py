@@ -3,6 +3,8 @@ from fastapi import status, HTTPException
 # SQLAlchemy imports
 from sqlalchemy.orm import Session
 # Local imports
+from app.utils.database import logger
+from app.core.celery import celery
 from .dog_crud import dog_crud
 
 
@@ -93,6 +95,8 @@ class DogService():
         try:
             db_obj = dog_crud._create(db, obj_in)
             db_obj.name = db_obj.name.lower()
+            result = celery.send_task("app.core.tasks.delay_task")
+            logger.info(f"Task ID: {result.id}")
             return db_obj
         except Exception as e:
             raise HTTPException(
